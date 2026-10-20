@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-display: var(--font-display-src), "Arial Narrow", sans-serif;
+  --font-sans: var(--font-sans-src), system-ui, sans-serif;
+}
+
+:focus-visible {
+  outline: 3px solid #dc2626;
+  outline-offset: 2px;
+}
+
+@layer components {
+  .scroll {
+    @apply overflow-x-auto rounded-md border border-slate-300 bg-white;
+  }
+  .tbl {
+    @apply w-full border-collapse tabular-nums;
+  }
+  .tbl th,
+  .tbl td {
+    @apply whitespace-nowrap px-4 py-3 text-right;
+  }
+  .tbl th:first-child,
+  .tbl td:first-child,
+  .tbl .l {
+    @apply text-left;
+  }
+  .tbl thead th {
+    @apply border-b-2 border-blue-900 bg-blue-100 text-[.9375rem] font-semibold text-blue-900;
+  }
+  .tbl tbody tr + tr td {
+    @apply border-t border-slate-200;
+  }
+  .tbl tbody tr:hover {
+    @apply bg-blue-50;
+  }
+  .tbl td a {
+    @apply font-semibold underline decoration-slate-300 underline-offset-4 hover:text-red-700 hover:decoration-red-600;
+  }
+  .tbl td a[aria-current] {
+    @apply text-red-700;
+  }
+}
+
+@layer components {
+  .tbl.left th,
+  .tbl.left td {
+    @apply text-left;
+  }
+}
