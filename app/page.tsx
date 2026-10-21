@@ -21,9 +21,15 @@ export default async function Home() {
           {season.season_name} players
         </Link>
       </div>
-      <p className="mt-8">
+      <p className="mt-8 flex flex-wrap gap-x-8 gap-y-2">
         <Link href="/schedule" className="font-semibold underline decoration-slate-300 underline-offset-4 hover:text-red-700">
           See the schedule
+        </Link>
+        <Link href="/records" className="font-semibold underline decoration-slate-300 underline-offset-4 hover:text-red-700">
+          All-time records
+        </Link>
+        <Link href="/rules" className="font-semibold underline decoration-slate-300 underline-offset-4 hover:text-red-700">
+          Rules &amp; guidelines
         </Link>
       </p>
     </div>

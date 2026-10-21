@@ -1,0 +1,7 @@
+services:
+  ballerstats:
+    build: .
+    ports:
+      - "3000:3000" # change the left number to use a different port on your computer
+    env_file: .env.local # DIRECTUS_URL, DIRECTUS_TOKEN, GOOGLE_SHEET_ID, ...
+    restart: unless-stopped

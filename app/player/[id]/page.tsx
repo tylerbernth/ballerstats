@@ -24,25 +24,46 @@ export default async function PlayerPage({
   const current = played.find((s) => same(s.id, season)) ?? played[0];
   const log = current ? bySeason.get(String(current.id)) ?? [] : [];
   const name = displayName(player);
+  const career = agg(stats);
 
   return (
     <>
       <Crumb href={`/players/${current?.id ?? seasons[0]?.id ?? ""}`}>{current ? `${current.season_name} players` : "All players"}</Crumb>
-      <div className="mb-10 flex items-center gap-6">
-        <Face player={player} size={96} />
+      <div className="mb-8 flex items-center gap-4 sm:mb-10 sm:gap-8">
+        <span className="w-28 shrink-0 sm:w-44">
+          <Face player={player} size={176} fluid />
+        </span>
         <div>
-          <h1 className="font-display text-4xl font-bold uppercase leading-none tracking-tight text-blue-900 sm:text-6xl">{name}</h1>
+          <h1 className="break-words font-display text-4xl font-bold uppercase leading-none tracking-tight text-blue-900 sm:text-6xl">{name}</h1>
           <p className="mt-2 text-slate-600">
-            {played.length} {played.length === 1 ? "season" : "seasons"} on record.
+            {played.length} {played.length === 1 ? "season" : "seasons"} and {career.gp} {career.gp === 1 ? "game" : "games"} on record.
           </p>
         </div>
       </div>
 
-      <H2>By season</H2>
+      {career.gp > 0 && (
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4 sm:gap-x-8 sm:gap-y-8">
+          {(
+            [
+              ["Career PPG", per(career.pts, career.gp)],
+              ["Career assists", career.ast],
+              ["Career steals", career.stl],
+              ["Career rebounds", career.reb],
+            ] as [string, string | number][]
+          ).map(([label, value]) => (
+            <div key={label} className="flex flex-col-reverse">
+              <dt className="mt-2 text-slate-600">{label}</dt>
+              <dd className="font-display text-5xl font-bold leading-none tabular-nums text-red-700 sm:text-6xl">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+
+      <H2>Historical season stats</H2>
       {played.length ? (
         <>
           <div className="scroll">
-            <table className="tbl">
+            <table className="tbl sticky-first">
               <thead>
                 <tr>
                   <th>Season</th>
@@ -85,12 +106,29 @@ export default async function PlayerPage({
                   );
                 })}
               </tbody>
+              {played.length > 1 && (
+                <tfoot>
+                  <tr className="border-t-2 border-blue-900 bg-slate-50 font-semibold">
+                    <td>Career</td>
+                    <td className="l" />
+                    <td>{career.gp}</td>
+                    <td className="text-red-700">{per(career.pts, career.gp)}</td>
+                    <td>{per(career.reb, career.gp)}</td>
+                    <td>{per(career.ast, career.gp)}</td>
+                    <td>{per(career.stl, career.gp)}</td>
+                    <td>{per(career.blk, career.gp)}</td>
+                    <td>{pct(career.fgm, career.fga)}</td>
+                    <td>{pct(career.tpm, career.tpa)}</td>
+                    <td>{pct(career.ftm, career.fta)}</td>
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
 
           <H2>Game log, {current?.season_name}</H2>
           <div className="scroll">
-            <table className="tbl">
+            <table className="tbl sticky-first">
               <thead>
                 <tr>
                   <th>Game</th>

@@ -78,7 +78,7 @@ export default function StatsTable({ rows, seasonId }: { rows: StatRow[]; season
         ))}
       </div>
       <div className="scroll">
-        <table className="tbl">
+        <table className="tbl sticky-first">
           <thead>
             <tr>
               {COLS.map((c) => (

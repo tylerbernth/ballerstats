@@ -6,7 +6,7 @@ import { getPlayers, getRosters, getSeasons, getStats, getTeam } from "@/lib/dir
 import { displayName, nameParts, same } from "@/lib/format";
 import { agg, groupBy } from "@/lib/stats";
 import type { Player } from "@/lib/types";
-import { Crumb, Empty, Face, H2, Meta, PlayerLink, Title } from "@/components/ui";
+import { Crumb, Empty, Face, H2, Meta, PlayerLink, Title, photoSrc } from "@/components/ui";
 
 const rate = (made: number, att: number) => (att ? (made / att) * 100 : null);
 
@@ -54,7 +54,17 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
   return (
     <>
       <Crumb href={`/teams/${team.season}`}>{season?.season_name} teams</Crumb>
-      <Title>{team.name}</Title>
+      {team.photo ? (
+        <div className="relative mb-6 overflow-hidden rounded-md bg-blue-900">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={photoSrc(team.photo, 1600)} alt={`${team.name} team photo`} className="aspect-[16/10] w-full object-cover object-top sm:aspect-[21/9]" />
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/85 to-transparent px-5 pb-5 pt-20 sm:px-8 sm:pb-7">
+            <h1 className="font-display text-5xl font-bold uppercase leading-none text-white sm:text-7xl">{team.name}</h1>
+          </div>
+        </div>
+      ) : (
+        <Title>{team.name}</Title>
+      )}
       <Meta>
         {season?.season_name}
         {team.other_name ? `, also known as ${team.other_name}` : ""}. Record {team.wins ?? 0}-{team.losses ?? 0}.
@@ -88,11 +98,13 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
 
       <H2>Roster</H2>
       {roster.length ? (
-        <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        <ul className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 md:grid-cols-4">
           {roster.map((p) => (
             <li key={String(p.id)}>
               <Link href={`/player/${p.id}?season=${team.season}`} className="group flex flex-col items-center gap-2 text-center">
-                <Face player={p} size={96} />
+                <span className="w-full max-w-44">
+                  <Face player={p} size={192} fluid />
+                </span>
                 <span className="font-semibold underline decoration-transparent underline-offset-4 group-hover:text-red-700 group-hover:decoration-red-600">
                   {displayName(p)}
                 </span>
@@ -111,22 +123,14 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
           {chartOk ? (
             <div className="space-y-4">
               <LineChart
-                heading="Points and rebounds"
-                title={`${team.name} points and rebounds by game`}
+                heading="Points, rebounds and field goal percentage"
+                title={`${team.name} points, rebounds and field goal percentage by game`}
                 labels={games.map((_, i) => `Game ${i + 1}`)}
                 series={[
                   { name: "Points", color: "#dc2626", values: games.map((g) => g.pts) },
                   { name: "Rebounds", color: "#d97706", values: games.map((g) => g.reb) },
+                  { name: "FG%", color: "#2563eb", values: games.map((g) => g.fg), suffix: "%" },
                 ]}
-              />
-              <LineChart
-                heading="Field goal percentage"
-                title={`${team.name} field goal percentage by game`}
-                labels={games.map((_, i) => `Game ${i + 1}`)}
-                series={[{ name: "FG%", color: "#2563eb", values: games.map((g) => g.fg) }]}
-                fixedMax={100}
-                fixedStep={25}
-                suffix="%"
               />
               {stats.length > withGame.length && (
                 <p className="text-slate-600">{stats.length - withGame.length} stat rows have no game assigned and are left out of these charts.</p>

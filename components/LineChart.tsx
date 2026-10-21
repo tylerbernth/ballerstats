@@ -1,4 +1,4 @@
-export type Series = { name: string; color: string; values: (number | null)[] };
+export type Series = { name: string; color: string; values: (number | null)[]; suffix?: string };
 
 const niceStep = (v: number) => {
   const exp = 10 ** Math.floor(Math.log10(v));
@@ -52,7 +52,7 @@ export default function LineChart({
         {series.map((s, si) =>
           s.values.map((v, i) =>
             v == null ? null : (
-              <Marker key={`${s.name}${i}`} i={si} x={x(i)} y={y(v)} color={s.color} tip={`${labels[i]}, ${s.name}: ${Number.isInteger(v) ? v : v.toFixed(1)}${suffix}`} />
+              <Marker key={`${s.name}${i}`} i={si} x={x(i)} y={y(v)} color={s.color} tip={`${labels[i]}, ${s.name}: ${Number.isInteger(v) ? v : v.toFixed(1)}${s.suffix ?? suffix}`} />
             ),
           ),
         )}

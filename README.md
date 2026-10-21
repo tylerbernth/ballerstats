@@ -26,6 +26,8 @@ Data is cached for 60 seconds, so edits in Directus show up within a minute.
 | --- | --- |
 | `/` | Landing page with links to the newest season's teams and players |
 | `/schedule` | Schedule read from a Google Sheet |
+| `/records?cat=pts` | All-time career totals and single-game bests |
+| `/rules` | Rules and guidelines (text lives in `app/rules/page.tsx`) |
 | `/teams/[season]` | Standings |
 | `/team/[id]` | Team roster and averages |
 | `/stats/[season]?cat=pts` | Stat leaders |
@@ -51,3 +53,14 @@ The Teams, Stats and Players header menus list every row of `xroads_bball_season
 Set `GOOGLE_SHEET_ID` (and `GOOGLE_SHEET_GID` for a tab other than the first) in `.env.local`.
 Share the sheet as "Anyone with the link can view". The first row becomes the column headings and every other
 row is shown as written. Changes appear within about five minutes.
+
+## Docker
+
+```bash
+docker compose up -d --build   # build and start in the background on http://localhost:3000
+docker compose logs -f         # watch the logs
+docker compose down            # stop it
+```
+
+Settings come from `.env.local` at start-up, so changing a value only needs `docker compose up -d`.
+Code changes need `docker compose up -d --build`.

@@ -66,7 +66,7 @@ export default async function StatsPage({
             <thead>
               <tr>
                 <th className="w-12">#</th>
-                <th>Player</th>
+                <th className="l">Player</th>
                 <th className="l">Team</th>
                 <th>GP</th>
                 <th>{cat.label}</th>

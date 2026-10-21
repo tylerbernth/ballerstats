@@ -79,14 +79,6 @@ export default async function SchedulePage() {
           </table>
         </div>
       )}
-
-      {sheetUrl && !problem && (
-        <p className="mt-10">
-          <a href={sheetUrl} target="_blank" rel="noopener noreferrer" className="font-semibold underline decoration-slate-300 underline-offset-4 hover:text-red-700">
-            Open in Google Sheets
-          </a>
-        </p>
-      )}
     </>
   );
 }

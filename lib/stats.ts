@@ -1,10 +1,11 @@
 import type { GameStat } from "./types";
 
 export function agg(rows: GameStat[]) {
-  const games = new Set(rows.map((r) => r.game ?? `row-${r.id}`));
   const n = (k: keyof GameStat) => rows.reduce((t, r) => t + (Number(r[k]) || 0), 0);
   return {
-    gp: games.size,
+    // One stat row is one player in one game, and every total below sums all rows, so games played
+    // must be the row count too. Counting distinct game ids made averages too high whenever two rows shared one.
+    gp: rows.length,
     pts: n("points"),
     reb: n("rebounds"),
     ast: n("assists"),

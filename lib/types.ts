@@ -26,6 +26,7 @@ export type Team = {
   losses: number | null;
   google_sheet_team: string | null;
   google_sheet_team_link: string | null;
+  photo: string | null; // Directus file id or image URL
 };
 
 export type Roster = { id: ID; team: ID; player: ID };

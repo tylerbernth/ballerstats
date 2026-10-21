@@ -26,18 +26,52 @@ export const Empty = ({ title, children }: { title: string; children?: React.Rea
   </p>
 );
 
-export function Face({ player, size = 36 }: { player?: Pick<Player, "headshot"> | null; size?: number }) {
-  const box = { width: size, height: size };
-  if (!player?.headshot) return <span className="inline-block shrink-0 rounded-full bg-blue-200" style={box} />;
+// The headshot field can hold either a full image URL or a Directus file id.
+const headshotSrc = (value: string, size: number) =>
+  /^https?:\/\//i.test(value) ? value : `/headshot/${value}?w=${size * 2}`;
+
+export function Face({ player, size = 36, fluid = false }: { player?: Pick<Player, "headshot"> | null; size?: number; fluid?: boolean }) {
+  // fluid fills the width of its container (square); otherwise the box is `size` pixels.
+  const box = fluid ? undefined : { width: size, height: size };
+  const shape = fluid ? "aspect-square w-full" : "";
+  if (!player?.headshot) {
+    return (
+      <span className={`inline-flex shrink-0 overflow-hidden rounded-full bg-blue-100 ${shape}`} style={box}>
+        <svg viewBox="0 0 100 100" aria-hidden className="h-full w-full">
+          <circle cx="50" cy="38" r="17" fill="#93c5fd" />
+          <ellipse cx="50" cy="93" rx="34" ry="30" fill="#93c5fd" />
+        </svg>
+      </span>
+    );
+  }
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={`/headshot/${player.headshot}?w=${size * 2}`}
+      src={headshotSrc(player.headshot, size)}
       alt=""
       loading="lazy"
-      className="shrink-0 rounded-full bg-blue-200 object-cover"
+      className={`shrink-0 rounded-full bg-blue-100 object-cover ${shape}`}
       style={box}
     />
+  );
+}
+
+// Team photos keep their shape (no square crop); the page decides how to crop them with CSS.
+export const photoSrc = (value: string, width: number) =>
+  /^https?:\/\//i.test(value) ? value : `/photo/${value}?w=${width}`;
+
+export function TeamPhoto({ team, width = 960, className = "" }: { team: Pick<Team, "name" | "photo">; width?: number; className?: string }) {
+  if (!team.photo) {
+    const initials = team.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+    return (
+      <div aria-hidden className={`flex items-center justify-center bg-blue-100 font-display text-6xl font-bold text-blue-300 ${className}`}>
+        {initials}
+      </div>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={photoSrc(team.photo, width)} alt="" loading="lazy" className={`bg-blue-100 object-cover ${className}`} />
   );
 }
 
