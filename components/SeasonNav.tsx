@@ -14,6 +14,7 @@ const SECTIONS = [
 
 const LINKS = [
   { href: "/schedule", label: "Schedule" },
+  { href: "/recaps", label: "Recaps" },
   { href: "/records", label: "Records" },
   { href: "/rules", label: "Rules" },
 ];

@@ -5,6 +5,10 @@ export type Season = {
   season_name: string;
   start_date: string | null;
   end_date: string | null;
+  // Optional awards, filled in Directus once a season is over.
+  champion?: ID | null; // team
+  runner_up?: ID | null; // team
+  mvp?: ID | null; // player
 };
 
 export type Player = {
@@ -49,4 +53,16 @@ export type GameStat = {
   steals: number | null;
   blocks: number | null;
   fouls: number | null;
+};
+
+export type Recap = {
+  id: ID;
+  title: string;
+  slug: string;
+  season: ID | null;
+  summary: string | null;
+  cover_image: string | null;
+  date_created: string | null;
+  content?: string | null;
+  players?: unknown[]; // many-to-many junction rows
 };

@@ -1,4 +1,4 @@
-import type { GameStat, ID, Player, Roster, Season, Team } from "./types";
+import type { GameStat, ID, Player, Recap, Roster, Season, Team } from "./types";
 
 const BASE = (process.env.DIRECTUS_URL ?? "").replace(/\/$/, "");
 const TOKEN = process.env.DIRECTUS_TOKEN;
@@ -9,6 +9,7 @@ export const COLLECTIONS = {
   seasons: "xroads_bball_seasons",
   players: "xroads_bball_players",
   stats: "xroads_bball_game_stats",
+  recaps: "xroads_bball_recaps",
 } as const;
 
 export class DirectusError extends Error {
@@ -38,12 +39,26 @@ async function one<T>(collection: string, id: ID): Promise<T | null> {
   try {
     return await request<T>(`/items/${collection}/${encodeURIComponent(String(id))}`);
   } catch (e) {
-    if (e instanceof DirectusError && (e.status === 404 || e.status === 403)) return null;
+    // 400 happens when the id is not valid for the collection, for example an old WordPress slug.
+    if (e instanceof DirectusError && [400, 403, 404].includes(e.status)) return null;
     throw e;
   }
 }
 
-export const getSeasons = () => list<Season>(COLLECTIONS.seasons, { sort: "-start_date" });
+// Newest first. Sorted by the number in the name ("Season 13"), so a wrong start date cannot shuffle the list;
+// start date breaks ties and orders any seasons without a number.
+const seasonNumber = (s: Season) => {
+  const m = s.season_name?.match(/\d+/);
+  return m ? Number(m[0]) : null;
+};
+
+export const getSeasons = async () =>
+  (await list<Season>(COLLECTIONS.seasons, { sort: "-start_date" })).sort((a, b) => {
+    const x = seasonNumber(a);
+    const y = seasonNumber(b);
+    if (x !== null && y !== null && x !== y) return y - x;
+    return (b.start_date ?? "").localeCompare(a.start_date ?? "");
+  });
 export const getPlayers = () => list<Player>(COLLECTIONS.players, { sort: "last_name" });
 export const getPlayer = (id: ID) => one<Player>(COLLECTIONS.players, id);
 export const getTeam = (id: ID) => one<Team>(COLLECTIONS.teams, id);
@@ -67,3 +82,34 @@ export const getStats = (by: { season?: ID; team?: ID; player?: ID }) =>
     "filter[team][_eq]": by.team === undefined ? undefined : String(by.team),
     "filter[player][_eq]": by.player === undefined ? undefined : String(by.player),
   });
+
+// Recaps are optional: if the collection is missing or the token cannot read it yet, the site simply shows none.
+async function optional<T>(run: () => Promise<T[]>): Promise<T[]> {
+  try {
+    return await run();
+  } catch (e) {
+    if (e instanceof DirectusError && [400, 403, 404].includes(e.status)) return [];
+    throw e;
+  }
+}
+
+export const getRecaps = () =>
+  optional(() =>
+    list<Recap>(COLLECTIONS.recaps, {
+      fields: "id,title,slug,season,summary,cover_image,date_created,players.*",
+      "filter[status][_eq]": "published",
+      sort: "-date_created",
+    }),
+  );
+
+export const getRecap = async (slug: string) =>
+  (
+    await optional(() =>
+      list<Recap>(COLLECTIONS.recaps, {
+        fields: "*,players.*",
+        "filter[slug][_eq]": slug,
+        "filter[status][_eq]": "published",
+        limit: 1,
+      }),
+    )
+  )[0] ?? null;

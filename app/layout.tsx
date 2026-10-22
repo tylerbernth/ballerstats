@@ -1,14 +1,24 @@
 import type { Metadata } from "next";
 import { Barlow_Condensed, Source_Sans_3 } from "next/font/google";
 import Header from "@/components/Header";
+import { LEAGUE, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const display = Barlow_Condensed({ subsets: ["latin"], weight: ["600", "700"], variable: "--font-display-src" });
 const sans = Source_Sans_3({ subsets: ["latin"], weight: ["400", "600"], variable: "--font-sans-src" });
 
 export const metadata: Metadata = {
-  title: { default: "Ballerstats", template: "%s | Ballerstats" },
-  description: "Standings, rosters and player stats for the Xroads basketball league.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: "Ballerstats | Crossroads Basketball League stats, schedule and rosters", template: "%s | Ballerstats" },
+  description: "Standings, rosters, schedule and player stats for the Crossroads Basketball League.",
+  alternates: { canonical: "./" },
+  openGraph: {
+    type: "website",
+    siteName: "Ballerstats",
+    locale: "en_US",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: LEAGUE }],
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

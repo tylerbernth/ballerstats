@@ -1,9 +1,29 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getPlayer, getSeasons, getStats, getTeams } from "@/lib/directus";
+import { getPlayer, getRecaps, getSeasons, getStats, getTeams } from "@/lib/directus";
+import { gameBadges, leaderBadges } from "@/lib/badges";
+import { recapDate, recapPlayerIds } from "@/lib/recap";
+import type { GameStat } from "@/lib/types";
 import { displayName, same } from "@/lib/format";
+import { redirectLegacyPlayer } from "@/lib/legacy";
 import { agg, groupBy, pct, per } from "@/lib/stats";
 import { Crumb, Empty, Face, H2, Meta, TeamLink } from "@/components/ui";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const player = await getPlayer(id);
+  if (!player) return {};
+  const name = displayName(player);
+  const rows = await getStats({ player: player.id });
+  const a = agg(rows);
+  const seasons = new Set(rows.map((r) => String(r.season))).size;
+  return {
+    title: `${name} stats`,
+    description: a.gp
+      ? `${name} career stats in the Crossroads Basketball League: ${per(a.pts, a.gp)} points, ${per(a.reb, a.gp)} rebounds and ${per(a.ast, a.gp)} assists per game over ${a.gp} games in ${seasons} ${seasons === 1 ? "season" : "seasons"}.`
+      : `${name} in the Crossroads Basketball League.`,
+  };
+}
 
 export default async function PlayerPage({
   params,
@@ -15,7 +35,7 @@ export default async function PlayerPage({
   const { id } = await params;
   const { season } = await searchParams;
   const player = await getPlayer(id);
-  if (!player) notFound();
+  if (!player) return redirectLegacyPlayer(id);
 
   const [stats, teams, seasons] = await Promise.all([getStats({ player: player.id }), getTeams(), getSeasons()]);
   const teamById = new Map(teams.map((t) => [String(t.id), t]));
@@ -25,6 +45,34 @@ export default async function PlayerPage({
   const log = current ? bySeason.get(String(current.id)) ?? [] : [];
   const name = displayName(player);
   const career = agg(stats);
+
+  const [allRecaps, seasonRows] = await Promise.all([
+    getRecaps(),
+    Promise.all(played.map(async (s) => ({ name: s.season_name, rows: await getStats({ season: s.id }) }))),
+  ]);
+  const mentions = allRecaps.filter((r) => recapPlayerIds(r).includes(String(player.id)));
+
+  // Awards come from the seasons collection; milestones and leader badges come from the stats.
+  const awards = [
+    ...played
+      .filter((s) => s.champion != null && (bySeason.get(String(s.id)) ?? []).some((r) => same(r.team, s.champion)))
+      .map((s) => `${s.season_name} champion`),
+    ...seasons.filter((s) => same(s.mvp, player.id)).map((s) => `${s.season_name} MVP`),
+  ];
+  const badges = [...gameBadges(stats), ...leaderBadges(player.id, seasonRows)];
+
+  const HIGHS = [
+    ["Points", "points"],
+    ["Rebounds", "rebounds"],
+    ["Assists", "assists"],
+    ["Steals", "steals"],
+    ["Blocks", "blocks"],
+    ["3-pointers made", "three_points_made"],
+  ] as const;
+  const highs = HIGHS.map(([label, key]) => {
+    const best = stats.reduce<GameStat | null>((b, r) => ((Number(r[key]) || 0) > (b ? Number(b[key]) || 0 : 0) ? r : b), null);
+    return best ? { label, value: Number(best[key]) || 0, row: best } : null;
+  }).filter((h): h is NonNullable<typeof h> => !!h && h.value > 0);
 
   return (
     <>
@@ -57,6 +105,17 @@ export default async function PlayerPage({
             </div>
           ))}
         </dl>
+      )}
+
+      {(awards.length > 0 || badges.length > 0) && (
+        <ul className="mt-8 flex flex-wrap gap-2">
+          {awards.map((b) => (
+            <li key={b} className="rounded-full bg-blue-900 px-3.5 py-1 text-[.9375rem] font-semibold text-white">{b}</li>
+          ))}
+          {badges.map((b) => (
+            <li key={b} className="rounded-full bg-blue-100 px-3.5 py-1 text-[.9375rem] font-semibold text-blue-900">{b}</li>
+          ))}
+        </ul>
       )}
 
       <H2>Historical season stats</H2>
@@ -126,6 +185,34 @@ export default async function PlayerPage({
             </table>
           </div>
 
+          {highs.length > 0 && (
+            <>
+              <H2>Career highs</H2>
+              <div className="scroll">
+                <table className="tbl">
+                  <thead>
+                    <tr>
+                      <th>Stat</th>
+                      <th>Best game</th>
+                      <th className="l">Season</th>
+                      <th className="l">Team</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {highs.map((h) => (
+                      <tr key={h.label}>
+                        <td>{h.label}</td>
+                        <td className="font-bold text-red-700">{h.value}</td>
+                        <td className="l">{seasons.find((s) => same(s.id, h.row.season))?.season_name}</td>
+                        <td className="l"><TeamLink team={teamById.get(String(h.row.team))} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
           <H2>Game log, {current?.season_name}</H2>
           <div className="scroll">
             <table className="tbl sticky-first">
@@ -175,6 +262,22 @@ export default async function PlayerPage({
         </>
       ) : (
         <Empty title="No games recorded" />
+      )}
+
+      {mentions.length > 0 && (
+        <>
+          <H2>In the recaps</H2>
+          <ul>
+            {mentions.map((r) => (
+              <li key={String(r.id)} className="border-t border-slate-200 py-3 first:border-t-0">
+                <Link href={`/recaps/${r.slug}`} className="font-semibold underline decoration-slate-300 underline-offset-4 hover:text-red-700 hover:decoration-red-600">
+                  {r.title}
+                </Link>
+                <span className="ml-3 text-[.9375rem] text-slate-600">{recapDate(r.date_created)}</span>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </>
   );

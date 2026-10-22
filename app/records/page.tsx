@@ -2,18 +2,23 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getPlayers, getSeasons, getStats, getTeams } from "@/lib/directus";
 import { displayName, same } from "@/lib/format";
+import { tensCount } from "@/lib/badges";
 import { agg, groupBy, type Agg } from "@/lib/stats";
 import type { GameStat } from "@/lib/types";
 import { Empty, H2, Meta, PlayerLink, TeamLink, Title } from "@/components/ui";
 
-export const metadata: Metadata = { title: "All-time records" };
+export const metadata: Metadata = {
+  title: "All-time records",
+  description: "All-time career leaders and single-game bests in points, rebounds, assists, steals, blocks and shooting for the Crossroads Basketball League.",
+};
 
 const num = (v: number | null) => Number(v) || 0;
 
 type Cat = {
   key: string;
   label: string;
-  kind: "count" | "pct" | "gp";
+  kind: "count" | "pct" | "gp" | "multi";
+  tens?: number; // for "multi": how many stats must reach 10 in a game
   total?: keyof Agg; // career total for count stats
   made?: keyof Agg; // made and attempted for percentage stats
   att?: keyof Agg;
@@ -31,6 +36,8 @@ const CATS: Cat[] = [
   { key: "fg", label: "FG%", kind: "pct", made: "fgm", att: "fga", game: (r) => num(r.two_points_made) + num(r.three_points_made), gameLabel: "field goals made" },
   { key: "tp", label: "3P%", kind: "pct", made: "tpm", att: "tpa", game: (r) => num(r.three_points_made), gameLabel: "3-pointers made" },
   { key: "ft", label: "FT%", kind: "pct", made: "ftm", att: "fta", game: (r) => num(r.ft_made), gameLabel: "free throws made" },
+  { key: "dd", label: "Double-doubles", kind: "multi", tens: 2 },
+  { key: "td", label: "Triple-doubles", kind: "multi", tens: 3 },
   { key: "gp", label: "Games played", kind: "gp" },
 ];
 
@@ -88,6 +95,7 @@ export default async function RecordsPage({ searchParams }: { searchParams: Prom
     player: playerById.get(pid),
     a: agg(rows),
     seasons: new Set(rows.map((r) => String(r.season))).size,
+    rows,
   }));
   const named = (x: { player?: unknown }) => !!x.player;
   const byName = (a: { player?: Parameters<typeof displayName>[0] }, b: { player?: Parameters<typeof displayName>[0] }) => displayName(a.player).localeCompare(displayName(b.player));
@@ -128,6 +136,35 @@ export default async function RecordsPage({ searchParams }: { searchParams: Prom
       </>
     ) : (
       <Empty title={`No player has ${min} attempts yet`}>Try a lower minimum below.</Empty>
+    );
+  } else if (cat.kind === "multi") {
+    const rows = byPlayer
+      .filter(named)
+      .map((x) => ({ ...x, v: x.rows.filter((r) => tensCount(r) >= cat.tens!).length }))
+      .filter((x) => x.v > 0)
+      .sort((a, b) => b.v - a.v || byName(a, b))
+      .slice(0, 10);
+    careerTable = rows.length ? (
+      <>
+        <Table>
+          <thead><tr><th className="w-12">#</th><th className="l">Player</th><th>Seasons</th><th>GP</th><th>{cat.label}</th><th>% of games</th></tr></thead>
+          <tbody>
+            {rows.map((x, i) => (
+              <tr key={String(x.player!.id)}>
+                <Rank i={i} /><td className="l"><PlayerLink player={x.player} /></td><td>{x.seasons}</td><td>{x.a.gp}</td>
+                <td className="font-bold text-red-700">{x.v}</td><td>{((x.v / (x.a.gp || 1)) * 100).toFixed(0)}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+        <p className="mt-3 text-slate-600">
+          {cat.tens === 3
+            ? "Ten or more in three of points, rebounds, assists, steals and blocks."
+            : "Ten or more in two of points, rebounds, assists, steals and blocks. Triple-doubles count too."}
+        </p>
+      </>
+    ) : (
+      <Empty title={`No ${cat.label.toLowerCase()} recorded yet`}>The first one will show up here.</Empty>
     );
   } else {
     const rows = byPlayer.filter(named).sort((a, b) => b.a.gp - a.a.gp || byName(a, b)).slice(0, 10);

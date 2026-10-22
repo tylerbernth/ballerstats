@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPlayers, getSeasons, getStats, getTeams } from "@/lib/directus";
@@ -12,6 +13,16 @@ const CATS = [
   { key: "stl", label: "Steals" },
   { key: "blk", label: "Blocks" },
 ] as const;
+
+export async function generateMetadata({ params }: { params: Promise<{ season: string }> }): Promise<Metadata> {
+  const { season } = await params;
+  const s = (await getSeasons()).find((x) => same(x.id, season));
+  if (!s) return {};
+  return {
+    title: `${s.season_name} stat leaders`,
+    description: `Per-game scoring, rebounding, assist, steal and block leaders for ${s.season_name} of the Crossroads Basketball League.`,
+  };
+}
 
 export default async function StatsPage({
   params,

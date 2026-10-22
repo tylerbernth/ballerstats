@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import { Title } from "@/components/ui";
 
-export const metadata: Metadata = { title: "Rules & guidelines" };
+export const metadata: Metadata = {
+  title: "Rules & guidelines",
+  description: "Rules, player conduct, game times, sign-up and fees for the Crossroads Basketball League.",
+};
 
 // Optional: link to the waiver form. Set WAIVER_URL in .env.local to show a button.
 const WAIVER_URL = process.env.WAIVER_URL;
 
 const FACTS = [
-  { label: "Games", value: "Sundays, 2-6pm" },
+  { label: "Games", value: "Sundays, 530-830pm" },
   { label: "Where", value: "Corona Friends Church" },
   { label: "Roster cap", value: "48 players" },
 ];
@@ -32,7 +35,7 @@ const SECTIONS = [
   {
     title: "Games and sign-up",
     items: [
-      "Games are held on Sundays from 2-6pm at Corona Friends Church",
+      "Games are held on Sundays from 530-830pm at Corona Friends Church",
       "We cap our league to the first 48 players who sign up, any players who sign up after will be placed on a waitlist",
     ],
   },

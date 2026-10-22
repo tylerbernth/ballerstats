@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import LineChart from "@/components/LineChart";
@@ -6,9 +7,22 @@ import { getPlayers, getRosters, getSeasons, getStats, getTeam } from "@/lib/dir
 import { displayName, nameParts, same } from "@/lib/format";
 import { agg, groupBy } from "@/lib/stats";
 import type { Player } from "@/lib/types";
-import { Crumb, Empty, Face, H2, Meta, PlayerLink, Title, photoSrc } from "@/components/ui";
+import { Crumb, Empty, Face, H2, Meta, Title, photoSrc } from "@/components/ui";
 
 const rate = (made: number, att: number) => (att ? (made / att) * 100 : null);
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const team = await getTeam(id);
+  if (!team) return {};
+  const season = (await getSeasons()).find((s) => same(s.id, team.season))?.season_name ?? "";
+  const photo = team.photo ? (/^https?:\/\//i.test(team.photo) ? team.photo : `/photo/${team.photo}?w=960`) : null;
+  return {
+    title: `${team.name}${season ? `, ${season}` : ""}`,
+    description: `${team.name} roster, stats and record (${team.wins ?? 0}-${team.losses ?? 0}) for ${season} of the Crossroads Basketball League.`,
+    ...(photo ? { openGraph: { images: [{ url: photo }] } } : {}),
+  };
+}
 
 export default async function TeamPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -69,32 +83,6 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
         {season?.season_name}
         {team.other_name ? `, also known as ${team.other_name}` : ""}. Record {team.wins ?? 0}-{team.losses ?? 0}.
       </Meta>
-
-      <dl className="mb-6 flex flex-wrap gap-x-8 gap-y-1">
-        <div className="flex gap-2">
-          <dt className="text-slate-600">Captain</dt>
-          <dd className="font-semibold">
-            <PlayerLink player={byId.get(String(team.captain))} season={team.season} /> {!team.captain && "none listed"}
-          </dd>
-        </div>
-        <div className="flex gap-2">
-          <dt className="text-slate-600">Co-captain</dt>
-          <dd className="font-semibold">
-            <PlayerLink player={byId.get(String(team.cocaptain))} season={team.season} /> {!team.cocaptain && "none listed"}
-          </dd>
-        </div>
-      </dl>
-
-      {team.google_sheet_team_link && (
-        <a
-          href={team.google_sheet_team_link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block rounded bg-red-600 px-4 py-2.5 font-semibold text-white hover:bg-red-700"
-        >
-          {team.google_sheet_team || "Open team sheet"}
-        </a>
-      )}
 
       <H2>Roster</H2>
       {roster.length ? (

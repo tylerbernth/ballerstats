@@ -1,13 +1,24 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { getSeasons, getTeams } from "@/lib/directus";
 import { same } from "@/lib/format";
+import { redirectLegacyTeam } from "@/lib/legacy";
 import { Empty, Meta, TeamPhoto, Title } from "@/components/ui";
+
+export async function generateMetadata({ params }: { params: Promise<{ season: string }> }): Promise<Metadata> {
+  const { season } = await params;
+  const s = (await getSeasons()).find((x) => same(x.id, season));
+  if (!s) return {};
+  return {
+    title: `${s.season_name} teams`,
+    description: `Every team in ${s.season_name} of the Crossroads Basketball League, with rosters, photos and stats.`,
+  };
+}
 
 export default async function TeamsPage({ params }: { params: Promise<{ season: string }> }) {
   const { season } = await params;
   const s = (await getSeasons()).find((x) => same(x.id, season));
-  if (!s) notFound();
+  if (!s) return redirectLegacyTeam(season);
 
   const teams = (await getTeams(s.id)).sort((a, b) => a.name.localeCompare(b.name));
 

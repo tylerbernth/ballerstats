@@ -64,3 +64,17 @@ docker compose down            # stop it
 
 Settings come from `.env.local` at start-up, so changing a value only needs `docker compose up -d`.
 Code changes need `docker compose up -d --build`.
+
+## Search engines
+
+- `SITE_URL` must be the public address, for example `https://ballerstats.com`.
+- `/sitemap.xml` lists every season, team and player page and updates on its own. Submit it in Google Search Console.
+- Old WordPress addresses redirect to the new pages: `/player/<name>/`, `/teams/<name>/`, `/season-N-players/`, `/season-N-teams/`, `/rules-guidelines/`.
+  The code is in `lib/legacy.ts` and `app/[slug]/page.tsx`.
+
+## Recaps and awards
+
+- **Recaps** come from `xroads_bball_recaps` (only rows with `status` set to `published`). The token needs read access to the
+  collection **and** to its many-to-many junction collection for `players`. Plain text from the weekly email works as is: lines of `---`
+  split sections, and a first line ending in `:` becomes the heading. Player names are linked automatically.
+- **Champions and badges** use these optional fields on `xroads_bball_seasons`: `champion` and `runner_up` (teams) and `mvp` (a player).

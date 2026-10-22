@@ -15,3 +15,14 @@ export function nameParts(p: Player) {
   const bits = displayName(p).split(" ");
   return { first: bits.slice(0, -1).join(" "), last: bits.at(-1) ?? "" };
 }
+
+// Matches how the old WordPress site built its addresses: "Jackson's 5" -> "jacksons-5".
+export const slugify = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['’]/g, "")
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");

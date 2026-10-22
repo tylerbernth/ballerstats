@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import ScheduleDay from "@/components/ScheduleDay";
 import { Empty, Title } from "@/components/ui";
 import { getSeasons, getTeams } from "@/lib/directus";
-import { getSchedule, groupByDate, norm, sheetUrl, toGames, todayIso } from "@/lib/schedule";
+import { getSchedule, groupByDate, norm, toGames, todayIso } from "@/lib/schedule";
 
-export const metadata: Metadata = { title: "Schedule" };
+export const metadata: Metadata = {
+  title: "Schedule",
+  description: "Game times, matchups and stat-keepers for the Crossroads Basketball League.",
+};
 export const revalidate = 300;
 
 const Dot = ({ dark }: { dark: boolean }) => (
@@ -79,6 +82,7 @@ export default async function SchedulePage() {
           </table>
         </div>
       )}
+
     </>
   );
 }
