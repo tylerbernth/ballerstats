@@ -113,3 +113,20 @@ export const getRecap = async (slug: string) =>
       }),
     )
   )[0] ?? null;
+
+// Fetches a photo (Directus file id or full image URL) as a data URI, for share cards drawn on the server.
+export async function assetDataUri(value: string, size = 400): Promise<string | null> {
+  try {
+    const isUrl = /^https?:\/\//i.test(value);
+    if (!isUrl && !BASE) return null;
+    const res = await fetch(
+      isUrl ? value : `${BASE}/assets/${encodeURIComponent(value)}?width=${size}&height=${size}&fit=cover&format=jpg&quality=85`,
+      { headers: !isUrl && TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}, next: { revalidate: 3600 } },
+    );
+    const type = res.headers.get("content-type") ?? "";
+    if (!res.ok || !/^image\/(png|jpe?g|gif)/.test(type)) return null;
+    return `data:${type};base64,${Buffer.from(await res.arrayBuffer()).toString("base64")}`;
+  } catch {
+    return null;
+  }
+}

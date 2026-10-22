@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import AddToCalendar from "@/components/AddToCalendar";
 import LineChart from "@/components/LineChart";
 import StatsTable, { type StatRow } from "@/components/StatsTable";
 import { getPlayers, getRosters, getSeasons, getStats, getTeam } from "@/lib/directus";
@@ -83,6 +84,8 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
         {season?.season_name}
         {team.other_name ? `, also known as ${team.other_name}` : ""}. Record {team.wins ?? 0}-{team.losses ?? 0}.
       </Meta>
+
+      {same(team.season, seasons[0]?.id) && <AddToCalendar teams={[{ id: String(team.id), name: team.name }]} />}
 
       <H2>Roster</H2>
       {roster.length ? (

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import AddToCalendar from "@/components/AddToCalendar";
 import ScheduleDay from "@/components/ScheduleDay";
 import { Empty, Title } from "@/components/ui";
 import { getSeasons, getTeams } from "@/lib/directus";
@@ -27,6 +28,15 @@ async function getTeamIds() {
   }
 }
 
+async function getCurrentTeams() {
+  try {
+    const [latest] = await getSeasons();
+    return latest ? (await getTeams(latest.id)).sort((a, b) => a.name.localeCompare(b.name)) : [];
+  } catch {
+    return [];
+  }
+}
+
 export default async function SchedulePage() {
   let data: Awaited<ReturnType<typeof getSchedule>> | null = null;
   let problem = "";
@@ -36,7 +46,7 @@ export default async function SchedulePage() {
     problem = e instanceof Error ? e.message : "Unknown error";
   }
 
-  const teamIds = await getTeamIds();
+  const [teamIds, currentTeams] = await Promise.all([getTeamIds(), getCurrentTeams()]);
   const games = data ? toGames(data.head, data.body) : null;
   const days = games ? groupByDate(games) : [];
   const today = todayIso();
@@ -49,6 +59,12 @@ export default async function SchedulePage() {
       <div className="mb-8">
         <Title>Schedule</Title>
       </div>
+
+      {!problem && currentTeams.length > 0 && (
+        <div className="mb-10">
+          <AddToCalendar teams={currentTeams.map((t) => ({ id: String(t.id), name: t.name }))} />
+        </div>
+      )}
 
       {problem ? (
         <Empty title="Could not load the schedule">{problem} Check GOOGLE_SHEET_ID in your environment settings.</Empty>

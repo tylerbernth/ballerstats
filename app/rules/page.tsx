@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 const WAIVER_URL = process.env.WAIVER_URL;
 
 const FACTS = [
-  { label: "Games", value: "Sundays, 530-830pm" },
+  { label: "Games", value: "Sundays, 5:30-8:30pm" },
   { label: "Where", value: "Corona Friends Church" },
   { label: "Roster cap", value: "48 players" },
 ];
@@ -35,7 +35,7 @@ const SECTIONS = [
   {
     title: "Games and sign-up",
     items: [
-      "Games are held on Sundays from 530-830pm at Corona Friends Church",
+      "Games are held on Sundays from 5:30-8:30pm at Corona Friends Church",
       "We cap our league to the first 48 players who sign up, any players who sign up after will be placed on a waitlist",
     ],
   },

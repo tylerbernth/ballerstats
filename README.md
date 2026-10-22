@@ -78,3 +78,10 @@ Code changes need `docker compose up -d --build`.
   collection **and** to its many-to-many junction collection for `players`. Plain text from the weekly email works as is: lines of `---`
   split sections, and a first line ending in `:` becomes the heading. Player names are linked automatically.
 - **Champions and badges** use these optional fields on `xroads_bball_seasons`: `champion` and `runner_up` (teams) and `mvp` (a player).
+
+## This week, calendar and share cards
+
+- **Home page "This week"** reads the schedule sheet for the next game day (countdown in Pacific time) and matches the last game day's games to
+  the stat rows for scores and the top scorer. Both teams' stat rows in a game must share the same `game` value.
+- **Add to calendar:** `/calendar/<team id>.ics` is a subscribable feed with that team's games, plus the games its team keeps stats for.
+- **Share cards:** `app/player/[id]/opengraph-image.tsx` draws the preview image for player links (photo plus latest season PPG, RPG, APG and GP).

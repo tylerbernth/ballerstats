@@ -94,3 +94,28 @@ export const dayLabel = (day: { date: string; iso: string | null }) =>
   day.iso
     ? new Date(day.iso + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
     : day.date;
+
+// ---------- Start times ----------
+export const GAME_MINUTES = 60;
+
+// Converts a wall-clock time in the league's time zone (for example 2026-10-25 17:30) to a UTC timestamp.
+function laToUtc(iso: string, hour: number, minute: number) {
+  const [y, mo, d] = iso.split("-").map(Number);
+  const wall = Date.UTC(y, mo - 1, d, hour, minute);
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: LEAGUE_TZ, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric",
+  });
+  const offsetAt = (t: number) => {
+    const p = Object.fromEntries(fmt.formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+    return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute) - t;
+  };
+  const first = wall - offsetAt(wall);
+  return wall - offsetAt(first); // second pass settles daylight saving changes
+}
+
+export function startsAt(g: Game): number | null {
+  const m = g.time.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
+  if (!m || !g.iso) return null;
+  const hour = (Number(m[1]) % 12) + (/pm/i.test(m[3]) ? 12 : 0);
+  return laToUtc(g.iso, hour, Number(m[2] ?? 0));
+}
