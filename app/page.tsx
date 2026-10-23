@@ -15,7 +15,7 @@ export default async function Home() {
     <div className="py-6 sm:py-12">
       <Title>Crossroads Basketball League</Title>
       <Meta>
-        Crossroads Basketball League plays Sundays from 5:30-8:30pm. Follow the schedule, rosters and player stats for every season. Showing {season.season_name}, the most recent season.
+        Crossroads Basketball League plays Sundays from 5:30-8:30pm. Follow the schedule, rosters and player stats for every season.
       </Meta>
       <div className="flex flex-wrap gap-4">
         <Link href={`/teams/${season.id}`} className="rounded bg-red-600 px-7 py-4 font-display text-2xl font-bold tracking-wide text-white hover:bg-red-700">

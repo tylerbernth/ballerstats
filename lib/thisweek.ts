@@ -1,11 +1,11 @@
 import { getPlayers, getSeasons, getStats, getTeams } from "./directus";
-import { dayLabel, getSchedule, groupByDate, norm, startsAt, toGames, type Game } from "./schedule";
+import { getSchedule, groupByDate, norm, startsAt, toGames, type Game } from "./schedule";
 import { groupBy } from "./stats";
 import type { GameStat, Player, Team } from "./types";
 
 const LATE = 90 * 60_000; // a game day counts as over 90 minutes after its last start time
 
-export type WeekResult = { time: string; away: string; home: string; awayId?: string; homeId?: string; awayPts: number; homePts: number };
+export type Score = { away: number; home: number };
 export type TopPerformer = { player: Player; pts: number; reb: number; ast: number; team?: Team };
 
 // Next game day (with a start time for the countdown) and last game day's results, matched from the schedule sheet and the stat rows.
@@ -32,7 +32,7 @@ export async function getThisWeek() {
     const teamIds: Record<string, string> = {};
     for (const t of teams) for (const n of [t.name, t.other_name]) if (n) teamIds[norm(n)] = String(t.id);
 
-    let last: { label: string; results: WeekResult[]; top?: TopPerformer } | null = null;
+    let last: { day: (typeof days)[number]["day"]; scores: Record<number, Score>; top?: TopPerformer } | null = null;
     if (lastDay) {
       const [stats, players] = await Promise.all([getStats({ season: latest.id }), getPlayers()]);
 
@@ -54,9 +54,9 @@ export async function getThisWeek() {
         return a && b ? { a, b, key: [a, b].sort().join("|") } : null;
       };
 
-      const results: WeekResult[] = [];
+      const scores: Record<number, Score> = {};
       const used: GameStat[] = [];
-      for (const g of lastDay.day.games) {
+      for (const [i, g] of lastDay.day.games.entries()) {
         const pair = pairOf(g);
         if (!pair) continue;
         // If two teams meet more than once, the nth scheduled meeting is the nth game in the stats.
@@ -64,10 +64,7 @@ export async function getThisWeek() {
         const played = pairs.get(pair.key)?.[nth - 1];
         if (!played) continue;
         used.push(...played.rows);
-        results.push({
-          time: g.time, away: g.away, home: g.home, awayId: pair.a, homeId: pair.b,
-          awayPts: played.pts.get(pair.a) ?? 0, homePts: played.pts.get(pair.b) ?? 0,
-        });
+        scores[i] = { away: played.pts.get(pair.a) ?? 0, home: played.pts.get(pair.b) ?? 0 };
       }
 
       let top: TopPerformer | undefined;
@@ -79,7 +76,7 @@ export async function getThisWeek() {
           team: teams.find((t) => String(t.id) === String(best.team)),
         };
       }
-      last = { label: dayLabel(lastDay.day), results, top };
+      last = { day: lastDay.day, scores, top };
     }
 
     if (!nextDay && !last) return null;

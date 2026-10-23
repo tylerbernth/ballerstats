@@ -1,11 +1,9 @@
 import Link from "next/link";
+import { Dot } from "./JerseyKey";
 import { dayLabel, norm, type Game } from "@/lib/schedule";
 
 type Day = { date: string; iso: string | null; games: Game[] };
-
-const Dot = ({ dark }: { dark: boolean }) => (
-  <i aria-hidden className={`inline-block size-3 shrink-0 rounded-full border-2 border-slate-800 ${dark ? "bg-slate-800" : "bg-white"}`} />
-);
+type Score = { away: number; home: number };
 
 // Links to the team page when the name matches a team in Directus (playoff placeholders like "Winner (Low Seed)" stay plain text).
 function TeamName({ name, ids }: { name: string; ids: Record<string, string> }) {
@@ -18,27 +16,53 @@ function TeamName({ name, ids }: { name: string; ids: Record<string, string> }) 
   );
 }
 
-function Matchup({ g, ids }: { g: Game; ids: Record<string, string> }) {
+function Points({ mine, theirs }: { mine: number; theirs: number }) {
+  return <span className={`tabular-nums ${mine > theirs ? "font-bold" : "font-normal text-slate-600"}`}>{mine}</span>;
+}
+
+function Matchup({ g, ids, score, compact }: { g: Game; ids: Record<string, string>; score?: Score; compact: boolean }) {
   if (!g.away || !g.home || g.away === g.home) return <span className="font-semibold">{g.away || g.home}</span>;
+  const side = `flex items-center font-semibold ${compact ? "gap-1.5" : "gap-2"}`;
   return (
-    <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <span className="flex items-center gap-2 font-semibold"><Dot dark /><TeamName name={g.away} ids={ids} /></span>
+    <span className={`flex flex-wrap items-center gap-y-1 ${compact ? "gap-x-2.5" : "gap-x-3"}`}>
+      <span className={side}>
+        <Dot dark />
+        <TeamName name={g.away} ids={ids} />
+        {score && <Points mine={score.away} theirs={score.home} />}
+      </span>
       <span className="text-slate-500">vs.</span>
-      <span className="flex items-center gap-2 font-semibold"><Dot dark={false} /><TeamName name={g.home} ids={ids} /></span>
+      <span className={side}>
+        <Dot dark={false} />
+        <TeamName name={g.home} ids={ids} />
+        {score && <Points mine={score.home} theirs={score.away} />}
+      </span>
     </span>
   );
 }
 
-export default function ScheduleDay({ day, teamIds }: { day: Day; teamIds: Record<string, string> }) {
+// One game day.
+// showStats: show the stat-keepers. scores: final scores keyed by game position.
+// fill: stretch the rows to match a taller neighbouring column. compact: narrower time column and smaller text,
+// so a matchup fits on one line in a half-width column.
+export default function ScheduleDay({
+  day, teamIds, showStats = true, scores, fill = false, compact = false,
+}: {
+  day: Day; teamIds: Record<string, string>; showStats?: boolean; scores?: Record<number, Score>; fill?: boolean; compact?: boolean;
+}) {
   return (
-    <section>
+    <section className={fill ? "flex flex-1 flex-col" : undefined}>
       <h3 className="mb-2 font-display text-2xl font-bold text-blue-900">{dayLabel(day)}</h3>
-      <ul className="overflow-hidden rounded-md border border-slate-300 bg-white">
+      <ul className={`overflow-hidden rounded-md border border-slate-300 bg-white ${fill ? "flex flex-1 flex-col" : ""}`}>
         {day.games.map((g, i) => (
-          <li key={i} className="grid gap-x-6 gap-y-1 border-t border-slate-200 px-4 py-3 first:border-t-0 sm:grid-cols-[6.5rem_1fr] sm:items-baseline">
+          <li
+            key={i}
+            className={`grid gap-y-1 border-t border-slate-200 py-3 first:border-t-0 sm:items-baseline ${
+              compact ? "gap-x-3 px-3.5 text-[.9375rem] sm:grid-cols-[4.5rem_1fr]" : "gap-x-5 px-4 sm:grid-cols-[5.25rem_1fr]"
+            } ${fill ? "flex-1 content-center" : ""}`}
+          >
             <span className="font-semibold tabular-nums text-red-700">{g.time}</span>
-            <Matchup g={g} ids={teamIds} />
-            {(g.statsTeam || g.statsPeople.length > 0) && (
+            <Matchup g={g} ids={teamIds} score={scores?.[i]} compact={compact} />
+            {showStats && (g.statsTeam || g.statsPeople.length > 0) && (
               <p className="text-sm text-slate-600 sm:col-start-2">
                 <span className="font-semibold text-slate-700">Stats:</span>{" "}
                 {g.statsTeam && <TeamName name={g.statsTeam} ids={teamIds} />}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import AddToCalendar from "@/components/AddToCalendar";
+import JerseyKey from "@/components/JerseyKey";
 import ScheduleDay from "@/components/ScheduleDay";
 import { Empty, Title } from "@/components/ui";
 import { getSeasons, getTeams } from "@/lib/directus";
@@ -10,10 +11,6 @@ export const metadata: Metadata = {
   description: "Game times, matchups and stat-keepers for the Crossroads Basketball League.",
 };
 export const revalidate = 300;
-
-const Dot = ({ dark }: { dark: boolean }) => (
-  <i aria-hidden className={`inline-block size-3 rounded-full border-2 border-slate-800 ${dark ? "bg-slate-800" : "bg-white"}`} />
-);
 
 // Maps team names to Directus team ids for the newest season. If Directus is unreachable, names just stay unlinked.
 async function getTeamIds() {
@@ -56,15 +53,10 @@ export default async function SchedulePage() {
 
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
         <Title>Schedule</Title>
+        {!problem && currentTeams.length > 0 && <AddToCalendar teams={currentTeams.map((t) => ({ id: String(t.id), name: t.name }))} />}
       </div>
-
-      {!problem && currentTeams.length > 0 && (
-        <div className="mb-10">
-          <AddToCalendar teams={currentTeams.map((t) => ({ id: String(t.id), name: t.name }))} />
-        </div>
-      )}
 
       {problem ? (
         <Empty title="Could not load the schedule">{problem} Check GOOGLE_SHEET_ID in your environment settings.</Empty>
@@ -72,12 +64,7 @@ export default async function SchedulePage() {
         <Empty title="The schedule sheet is empty">Add rows to the sheet and they will show up here.</Empty>
       ) : games ? (
         <>
-          {hasJerseys && (
-            <p className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-slate-600">
-              <span className="flex items-center gap-2"><Dot dark />Dark jerseys</span>
-              <span className="flex items-center gap-2"><Dot dark={false} />Light jerseys</span>
-            </p>
-          )}
+          {hasJerseys && <JerseyKey className="mb-6" />}
           <div className="space-y-8">
             {upcoming.length ? upcoming.map((d) => <ScheduleDay key={d.date} day={d} teamIds={teamIds} />) : <Empty title="No upcoming games">Check the earlier games below.</Empty>}
           </div>
