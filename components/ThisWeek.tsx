@@ -32,9 +32,7 @@ export default function ThisWeek({ data }: { data: Data }) {
           {last ? (
             <>
               <p className="mb-5 flex h-20 items-center text-slate-600">
-                {finals
-                  ? `${finals} ${finals === 1 ? "game has a final score" : "games have final scores"}. Select Box score for the full stat lines.`
-                  : "Scores show up once the stats are entered."}
+                Select Box score for the full stat lines.
               </p>
               <ScheduleDay day={last.day} teamIds={teamIds} showStats={false} scores={last.scores} gameIds={last.gameIds} fill compact />
             </>

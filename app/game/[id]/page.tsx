@@ -60,7 +60,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const line = g.sides.map((s, i) => `${names[i]} ${s.total.pts}`).join(", ");
   return {
     title: names.join(" vs. "),
-    description: `Box score: ${line}${g.season ? ` (${g.season.season_name})` : ""}, Crossroads Basketball League.`,
+    description: `Box Score: ${line}${g.season ? ` (${g.season.season_name})` : ""}, Crossroads Basketball League.`,
   };
 }
 
