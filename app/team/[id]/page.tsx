@@ -72,7 +72,7 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
       {team.photo ? (
         <div className="relative mb-6 overflow-hidden rounded-md bg-blue-900">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={photoSrc(team.photo, 1600)} alt={`${team.name} team photo`} className="aspect-[16/10] w-full object-cover object-top sm:aspect-[21/9]" />
+          <img src={photoSrc(team.photo, 1600)} alt={`${team.name} team photo`} className="aspect-[4/3] w-full object-cover object-center sm:aspect-[16/9] lg:aspect-[16/8]" />
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/85 to-transparent px-5 pb-5 pt-20 sm:px-8 sm:pb-7">
             <h1 className="font-display text-5xl font-bold uppercase leading-none text-white sm:text-7xl">{team.name}</h1>
           </div>
