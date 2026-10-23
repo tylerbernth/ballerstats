@@ -77,9 +77,20 @@ export function TeamPhoto({ team, width = 960, className = "" }: { team: Pick<Te
 
 export function PlayerLink({ player, season }: { player?: Player | null; season?: ID }) {
   if (!player) return null;
-  return <Link href={`/player/${player.id}${season != null ? `?season=${season}` : ""}`}>{displayName(player)}</Link>;
+  return (
+    <Link
+      href={`/player/${player.id}${season != null ? `?season=${season}` : ""}`}
+      className="font-semibold underline decoration-slate-300 underline-offset-4 hover:text-red-700 hover:decoration-red-600"
+    >
+      {displayName(player)}
+    </Link>
+  );
 }
 
 export function TeamLink({ team }: { team?: Team | null }) {
-  return team ? <Link href={`/team/${team.id}`}>{team.name}</Link> : null;
+  return team ? (
+    <Link href={`/team/${team.id}`} className="font-semibold underline decoration-slate-300 underline-offset-4 hover:text-red-700 hover:decoration-red-600">
+      {team.name}
+    </Link>
+  ) : null;
 }

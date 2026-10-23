@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Countdown from "./Countdown";
 import JerseyKey from "./JerseyKey";
 import ScheduleDay from "./ScheduleDay";
@@ -6,6 +7,7 @@ import type { ThisWeek as Data } from "@/lib/thisweek";
 
 export default function ThisWeek({ data }: { data: Data }) {
   const { next, last, teamIds } = data;
+  const finals = last ? Object.keys(last.scores).length : 0;
 
   // Both columns use the same pieces in the same order: heading, a fixed-height summary, then the game list.
   return (
@@ -29,32 +31,40 @@ export default function ThisWeek({ data }: { data: Data }) {
           <h3 className="mb-3 text-xl font-semibold">Last Week</h3>
           {last ? (
             <>
-              <div className="mb-5 flex h-20 items-center gap-4">
-                {last.top ? (
-                  <>
-                    <Face player={last.top.player} size={64} />
-                    <div>
-                      <p className="text-[.9375rem] text-slate-600">Top Performer</p>
-                      <p className="text-xl font-semibold">
-                        <PlayerLink player={last.top.player} />
-                      </p>
-                      <p className="text-[.9375rem]">
-                        {last.top.pts} points, {last.top.reb} rebounds, {last.top.ast} assists
-                        {last.top.team ? ` for ${last.top.team.name}` : ""}
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-slate-600">Scores and the top performer show up once the stats are entered.</p>
-                )}
-              </div>
-              <ScheduleDay day={last.day} teamIds={teamIds} showStats={false} scores={last.scores} fill compact />
+              <p className="mb-5 flex h-20 items-center text-slate-600">
+                {finals
+                  ? `${finals} ${finals === 1 ? "game has a final score" : "games have final scores"}. Select Box score for the full stat lines.`
+                  : "Scores show up once the stats are entered."}
+              </p>
+              <ScheduleDay day={last.day} teamIds={teamIds} showStats={false} scores={last.scores} gameIds={last.gameIds} fill compact />
             </>
           ) : (
             <p className="text-slate-600">Results will show up here after the first game day.</p>
           )}
         </div>
       </div>
+
+      {last && last.top.length > 0 && (
+        <div className="mt-10">
+          <h3 className="mb-3 text-xl font-semibold">Last Week&apos;s Top Performers</h3>
+          <ol className="grid gap-4 sm:grid-cols-3">
+            {last.top.map((t, i) => (
+              <li key={String(t.player.id)} className="flex items-center gap-4 rounded-md border border-slate-300 bg-white p-4">
+                <span className="w-5 font-display text-3xl font-bold leading-none text-red-700">{i + 1}</span>
+                <Face player={t.player} size={56} />
+                <div className="min-w-0">
+                  <p className="truncate text-lg font-semibold"><PlayerLink player={t.player} /></p>
+                  <p className="text-[.9375rem]">{t.pts} pts, {t.reb} reb, {t.ast} ast</p>
+                  <p className="text-[.9375rem] text-slate-600">
+                    {t.team ? `${t.team.name}. ` : ""}
+                    <Link href={`/game/${t.game}`} className="font-semibold underline decoration-slate-300 underline-offset-4 hover:text-red-700">Box score</Link>
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
     </section>
   );
 }

@@ -27,6 +27,68 @@ export function gameBadges(rows: GameStat[]): string[] {
   return out;
 }
 
+// ---------- Streaks ----------
+// Rows come back sorted by game, but sort again so streaks never depend on the fetch order.
+const order = (r: GameStat) => Number(r.game ?? r.id) || 0;
+const chrono = (rows: GameStat[]) => [...rows].sort((a, b) => order(a) - order(b) || (Number(a.id) || 0) - (Number(b.id) || 0));
+
+function runs(rows: GameStat[], hit: (r: GameStat) => boolean) {
+  let best = 0, cur = 0;
+  for (const r of rows) {
+    cur = hit(r) ? cur + 1 : 0;
+    if (cur > best) best = cur;
+  }
+  return { best, cur };
+}
+
+const STREAKS: { label: string; min: number; tiers: number[]; val: (r: GameStat) => number }[] = [
+  { label: "points", min: 3, tiers: [25, 20, 15, 10], val: (r) => n(r.points) },
+  { label: "rebounds", min: 3, tiers: [15, 10, 7, 5], val: (r) => n(r.rebounds) },
+  { label: "assists", min: 3, tiers: [10, 7, 5, 3], val: (r) => n(r.assists) },
+  { label: "threes", min: 3, tiers: [3, 2, 1], val: (r) => n(r.three_points_made) },
+];
+
+// "Hot streak" is a streak still running at the player's latest game, and only counts if that game was in the
+// newest season. "Best" is the longest streak ever at the highest level reached.
+export function streakBadges(rows: GameStat[], latestSeason?: ID | null): string[] {
+  const sorted = chrono(rows);
+  const live = sorted.length > 0 && latestSeason != null && String(sorted[sorted.length - 1].season) === String(latestSeason);
+  const hot: string[] = [];
+  const best: string[] = [];
+  for (const s of STREAKS) {
+    const tiers = s.tiers.map((t) => ({ t, ...runs(sorted, (r) => s.val(r) >= t) }));
+    const longest = tiers.find((x) => x.best >= s.min);
+    const current = live ? tiers.find((x) => x.cur >= s.min) : undefined;
+    if (current) hot.push(`Hot streak: ${current.cur} straight games of ${current.t}+ ${s.label}`);
+    if (longest && !(current && current.t === longest.t && current.cur === longest.best)) {
+      best.push(`${longest.best} straight games of ${longest.t}+ ${s.label}`);
+    }
+  }
+  return [...hot, ...best];
+}
+
+// ---------- Career milestones ----------
+const MILESTONES = [
+  { key: "pts", label: "career points", tiers: [100, 250, 500, 1000, 1500, 2000, 3000] },
+  { key: "reb", label: "career rebounds", tiers: [50, 100, 250, 500, 1000] },
+  { key: "ast", label: "career assists", tiers: [25, 50, 100, 250, 500] },
+  { key: "stl", label: "career steals", tiers: [25, 50, 100, 250] },
+  { key: "blk", label: "career blocks", tiers: [25, 50, 100] },
+  { key: "tpm", label: "career 3-pointers", tiers: [25, 50, 100, 250] },
+  { key: "gp", label: "career games", tiers: [25, 50, 100, 150, 200] },
+] as const;
+
+// Only the highest milestone reached in each category, so a 500-point scorer shows "500+" and not every step before it.
+export function milestoneBadges(rows: GameStat[]): string[] {
+  const a = agg(rows);
+  const out: string[] = [];
+  for (const m of MILESTONES) {
+    const tier = [...m.tiers].reverse().find((t) => a[m.key] >= t);
+    if (tier) out.push(`${tier}+ ${m.label}`);
+  }
+  return out;
+}
+
 const LEADERS = [
   ["pts", "scoring"],
   ["reb", "rebounding"],

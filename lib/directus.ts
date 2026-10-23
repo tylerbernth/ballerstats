@@ -74,13 +74,14 @@ export const getRosters = (by: { team?: ID; season?: ID }) =>
 const STAT_FIELDS =
   "id,player,game,team,season,points,two_points_made,two_points_attempted,three_points_made,three_points_attempted,ft_made,ft_attempted,rebounds,assists,steals,blocks,fouls";
 
-export const getStats = (by: { season?: ID; team?: ID; player?: ID }) =>
+export const getStats = (by: { season?: ID; team?: ID; player?: ID; game?: ID }) =>
   list<GameStat>(COLLECTIONS.stats, {
     fields: STAT_FIELDS,
     sort: "game,id",
     "filter[season][_eq]": by.season === undefined ? undefined : String(by.season),
     "filter[team][_eq]": by.team === undefined ? undefined : String(by.team),
     "filter[player][_eq]": by.player === undefined ? undefined : String(by.player),
+    "filter[game][_eq]": by.game === undefined ? undefined : String(by.game),
   });
 
 // Recaps are optional: if the collection is missing or the token cannot read it yet, the site simply shows none.

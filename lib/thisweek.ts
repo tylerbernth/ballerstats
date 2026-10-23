@@ -1,12 +1,12 @@
 import { getPlayers, getSeasons, getStats, getTeams } from "./directus";
-import { getSchedule, groupByDate, norm, startsAt, toGames, type Game } from "./schedule";
-import { groupBy } from "./stats";
+import { matchSchedule, playedGames } from "./games";
+import { getSchedule, groupByDate, norm, startsAt, toGames } from "./schedule";
 import type { GameStat, Player, Team } from "./types";
 
 const LATE = 90 * 60_000; // a game day counts as over 90 minutes after its last start time
 
 export type Score = { away: number; home: number };
-export type TopPerformer = { player: Player; pts: number; reb: number; ast: number; team?: Team };
+export type TopPerformer = { player: Player; pts: number; reb: number; ast: number; team?: Team; game: string };
 
 // Next game day (with a start time for the countdown) and last game day's results, matched from the schedule sheet and the stat rows.
 export async function getThisWeek() {
@@ -32,51 +32,48 @@ export async function getThisWeek() {
     const teamIds: Record<string, string> = {};
     for (const t of teams) for (const n of [t.name, t.other_name]) if (n) teamIds[norm(n)] = String(t.id);
 
-    let last: { day: (typeof days)[number]["day"]; scores: Record<number, Score>; top?: TopPerformer } | null = null;
+    let last: {
+      day: (typeof days)[number]["day"];
+      scores: Record<number, Score>;
+      gameIds: Record<number, string>;
+      top: TopPerformer[];
+    } | null = null;
+
     if (lastDay) {
       const [stats, players] = await Promise.all([getStats({ season: latest.id }), getPlayers()]);
-
-      // Group stat rows into games; a game with exactly two teams is a finished matchup.
-      type Played = { id: number; pts: Map<string, number>; rows: GameStat[] };
-      const pairs = new Map<string, Played[]>();
-      for (const [gid, rows] of groupBy(stats.filter((r) => r.game != null), (r) => String(r.game))) {
-        const pts = new Map<string, number>();
-        for (const r of rows) pts.set(String(r.team), (pts.get(String(r.team)) ?? 0) + (Number(r.points) || 0));
-        if (pts.size !== 2) continue;
-        const key = [...pts.keys()].sort().join("|");
-        pairs.set(key, [...(pairs.get(key) ?? []), { id: Number(gid) || 0, pts, rows }]);
-      }
-      for (const list of pairs.values()) list.sort((a, b) => a.id - b.id);
-
-      const pairOf = (g: Game) => {
-        const a = teamIds[norm(g.away)];
-        const b = teamIds[norm(g.home)];
-        return a && b ? { a, b, key: [a, b].sort().join("|") } : null;
-      };
+      const matches = matchSchedule(games, teamIds, playedGames(stats));
 
       const scores: Record<number, Score> = {};
+      const gameIds: Record<number, string> = {};
       const used: GameStat[] = [];
       for (const [i, g] of lastDay.day.games.entries()) {
-        const pair = pairOf(g);
-        if (!pair) continue;
-        // If two teams meet more than once, the nth scheduled meeting is the nth game in the stats.
-        const nth = games.slice(0, games.indexOf(g) + 1).filter((x) => pairOf(x)?.key === pair.key).length;
-        const played = pairs.get(pair.key)?.[nth - 1];
-        if (!played) continue;
-        used.push(...played.rows);
-        scores[i] = { away: played.pts.get(pair.a) ?? 0, home: played.pts.get(pair.b) ?? 0 };
+        const m = matches.get(games.indexOf(g));
+        if (!m) continue;
+        used.push(...m.played.rows);
+        scores[i] = { away: m.played.pts.get(m.awayId) ?? 0, home: m.played.pts.get(m.homeId) ?? 0 };
+        gameIds[i] = m.played.id;
       }
 
-      let top: TopPerformer | undefined;
-      const best = used.reduce<GameStat | null>((b, r) => ((Number(r.points) || 0) > (b ? Number(b.points) || 0 : -1) ? r : b), null);
-      const player = best && players.find((p) => String(p.id) === String(best.player));
-      if (best && player) {
-        top = {
-          player, pts: Number(best.points) || 0, reb: Number(best.rebounds) || 0, ast: Number(best.assists) || 0,
-          team: teams.find((t) => String(t.id) === String(best.team)),
-        };
+      // Top three scorers, one line per player (their best game of the day).
+      const n = (v: number | null) => Number(v) || 0;
+      const ranked = [...used].sort(
+        (a, b) => n(b.points) - n(a.points) || n(b.rebounds) + n(b.assists) - (n(a.rebounds) + n(a.assists)),
+      );
+      const playerById = new Map(players.map((p) => [String(p.id), p]));
+      const top: TopPerformer[] = [];
+      const seen = new Set<string>();
+      for (const r of ranked) {
+        if (top.length >= 3) break;
+        const pid = String(r.player);
+        const player = playerById.get(pid);
+        if (!player || seen.has(pid)) continue;
+        seen.add(pid);
+        top.push({
+          player, pts: n(r.points), reb: n(r.rebounds), ast: n(r.assists),
+          team: teams.find((t) => String(t.id) === String(r.team)), game: String(r.game),
+        });
       }
-      last = { day: lastDay.day, scores, top };
+      last = { day: lastDay.day, scores, gameIds, top };
     }
 
     if (!nextDay && !last) return null;
