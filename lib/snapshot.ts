@@ -17,6 +17,14 @@ const CATS = [
   { key: "blk", label: "Blocks" },
 ] as const;
 
+// Keeps everyone ranked in the top three, up to five rows, so a tie for third is not cut off.
+// Ties are judged on the number people see (one decimal), so two players showing 2.6 count as tied.
+// The tabs component works out the displayed ranks (1, T2, T2) from the same rule.
+export function topWithTies<T extends { v: number }>(sorted: T[]): T[] {
+  const shown = (v: number) => v.toFixed(1);
+  return sorted.filter((x) => sorted.findIndex((y) => shown(y.v) === shown(x.v)) + 1 <= 3).slice(0, 5);
+}
+
 // Standings rely on the season's team record fields, which are the official league standings.
 // Leaders need at least half of the most games anyone has played, so one big game cannot top a list.
 export async function getSnapshot(season: Season): Promise<Snapshot | null> {
@@ -45,11 +53,12 @@ export async function getSnapshot(season: Season): Promise<Snapshot | null> {
     const leaders: LeaderCat[] = CATS.map((c) => ({
       key: c.key,
       label: c.label,
-      rows: eligible
-        .map((x) => ({ player: x.player!, team: x.team, gp: x.a.gp, v: x.a[c.key] / x.a.gp }))
-        .filter((x) => x.v > 0)
-        .sort((p, q) => q.v - p.v || displayName(p.player).localeCompare(displayName(q.player)))
-        .slice(0, 3),
+      rows: topWithTies(
+        eligible
+          .map((x) => ({ player: x.player!, team: x.team, gp: x.a.gp, v: x.a[c.key] / x.a.gp }))
+          .filter((x) => x.v > 0)
+          .sort((p, q) => q.v - p.v || displayName(p.player).localeCompare(displayName(q.player))),
+      ),
     })).filter((c) => c.rows.length);
 
     return { season, standings, leaders, minGp };

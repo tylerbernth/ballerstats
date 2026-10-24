@@ -6,11 +6,19 @@ type Day = { date: string; iso: string | null; games: Game[] };
 type Score = { away: number; home: number };
 
 // Links to the team page when the name matches a team in Directus (playoff placeholders like "Winner (Low Seed)" stay plain text).
-function TeamName({ name, ids, linkable = true }: { name: string; ids: Record<string, string>; linkable?: boolean }) {
+// plain: no underline until hover, for the busier home page lists.
+function TeamName({ name, ids, linkable = true, plain = false }: { name: string; ids: Record<string, string>; linkable?: boolean; plain?: boolean }) {
   const id = ids[norm(name)];
   if (!id || !linkable) return <>{name}</>;
   return (
-    <Link href={`/team/${id}`} className="underline decoration-slate-300 underline-offset-4 hover:text-red-700 hover:decoration-red-600">
+    <Link
+      href={`/team/${id}`}
+      className={
+        plain
+          ? "underline-offset-4 hover:text-red-700 hover:underline hover:decoration-red-600"
+          : "underline decoration-slate-300 underline-offset-4 hover:text-red-700 hover:decoration-red-600"
+      }
+    >
       {name}
     </Link>
   );
@@ -20,21 +28,42 @@ function Points({ mine, theirs }: { mine: number; theirs: number }) {
   return <span className={`tabular-nums ${mine > theirs ? "font-bold" : "font-normal text-slate-600"}`}>{mine}</span>;
 }
 
-function Matchup({ g, ids, score, compact, linkable = true }: { g: Game; ids: Record<string, string>; score?: Score; compact: boolean; linkable?: boolean }) {
+type MatchupProps = { g: Game; ids: Record<string, string>; score?: Score; compact: boolean; linkable?: boolean; plain: boolean };
+
+// Phones get a small scoreboard (one team per line, score on the right); wider screens keep one line with "vs.".
+function Matchup({ g, ids, score, compact, linkable = true, plain }: MatchupProps) {
   if (!g.away || !g.home || g.away === g.home) return <span className="font-semibold">{g.away || g.home}</span>;
-  const side = `flex items-center font-semibold ${compact ? "gap-1.5" : "gap-2"}`;
-  return (
-    <span className={`flex flex-wrap items-center gap-y-1 ${compact ? "gap-x-2.5" : "gap-x-3"}`}>
-      <span className={side}>
-        <Dot dark />
-        <TeamName name={g.away} ids={ids} linkable={linkable} />
-        {score && <Points mine={score.away} theirs={score.home} />}
+
+  const name = (n: string) => <TeamName name={n} ids={ids} linkable={linkable} plain={plain} />;
+  const line = (dark: boolean, n: string, mine?: number, theirs?: number) => (
+    <span className="flex items-center justify-between gap-4 font-semibold">
+      <span className="flex min-w-0 items-center gap-2">
+        <Dot dark={dark} />
+        <span className="truncate">{name(n)}</span>
       </span>
-      <span className="text-slate-500">vs.</span>
-      <span className={side}>
-        <Dot dark={false} />
-        <TeamName name={g.home} ids={ids} linkable={linkable} />
-        {score && <Points mine={score.home} theirs={score.away} />}
+      {score && mine !== undefined && theirs !== undefined && <Points mine={mine} theirs={theirs} />}
+    </span>
+  );
+  const side = `flex items-center font-semibold ${compact ? "gap-1.5" : "gap-2"}`;
+
+  return (
+    <span className="block min-w-0">
+      <span className="grid gap-1.5 sm:hidden">
+        {line(true, g.away, score?.away, score?.home)}
+        {line(false, g.home, score?.home, score?.away)}
+      </span>
+      <span className={`hidden flex-wrap items-center gap-y-1 sm:flex ${compact ? "gap-x-2.5" : "gap-x-3"}`}>
+        <span className={side}>
+          <Dot dark />
+          {name(g.away)}
+          {score && <Points mine={score.away} theirs={score.home} />}
+        </span>
+        <span className="text-slate-500">vs.</span>
+        <span className={side}>
+          <Dot dark={false} />
+          {name(g.home)}
+          {score && <Points mine={score.home} theirs={score.away} />}
+        </span>
       </span>
     </span>
   );
@@ -42,8 +71,9 @@ function Matchup({ g, ids, score, compact, linkable = true }: { g: Game; ids: Re
 
 // One game day.
 // showStats: show the stat-keepers. scores: final scores keyed by game position.
+// gameIds: when a game has one, the whole matchup links to its box score.
 // fill: stretch the rows to match a taller neighbouring column. compact: narrower time column and smaller text,
-// so a matchup fits on one line in a half-width column.
+// so a matchup fits on one line in a half-width column (and links are underlined only on hover).
 export default function ScheduleDay({
   day, teamIds, showStats = true, scores, gameIds, fill = false, compact = false,
 }: {
@@ -55,7 +85,7 @@ export default function ScheduleDay({
       <ul className={`overflow-hidden rounded-md border border-slate-300 bg-white ${fill ? "flex flex-1 flex-col" : ""}`}>
         {day.games.map((g, i) => {
           const boxScoreHref = gameIds?.[i];
-          const matchup = <Matchup g={g} ids={teamIds} score={scores?.[i]} compact={compact} linkable={!boxScoreHref} />;
+          const matchup = <Matchup g={g} ids={teamIds} score={scores?.[i]} compact={compact} linkable={!boxScoreHref} plain={compact} />;
 
           return (
             <li
@@ -66,7 +96,14 @@ export default function ScheduleDay({
             >
               <span className="font-semibold tabular-nums text-red-700">{g.time}</span>
               {boxScoreHref ? (
-                <Link href={`/game/${boxScoreHref}`} className="underline decoration-slate-300 underline-offset-4 hover:text-red-700 hover:decoration-red-600">
+                <Link
+                  href={`/game/${boxScoreHref}`}
+                  className={
+                    compact
+                      ? "underline-offset-4 hover:text-red-700 hover:underline hover:decoration-red-600"
+                      : "underline decoration-slate-300 underline-offset-4 hover:text-red-700 hover:decoration-red-600"
+                  }
+                >
                   {matchup}
                 </Link>
               ) : (
