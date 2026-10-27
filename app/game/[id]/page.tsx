@@ -3,7 +3,7 @@ import { cache } from "react";
 import { notFound } from "next/navigation";
 import { Dot } from "@/components/JerseyKey";
 import { Crumb, H2, Meta, PlayerLink, TeamLink, Title } from "@/components/ui";
-import { getPlayers, getSeasons, getStats, getTeams } from "@/lib/directus";
+import { getGameVideos, getPlayers, getSeasons, getStats, getTeams } from "@/lib/directus";
 import { displayName, same } from "@/lib/format";
 import { matchSchedule, playedGames } from "@/lib/games";
 import { dayLabel, getSchedule, norm, toGames, type Game } from "@/lib/schedule";
@@ -12,15 +12,16 @@ import { agg, groupBy } from "@/lib/stats";
 const n = (v: number | null) => Number(v) || 0;
 const made = (m: number, a: number) => `${m}-${a}`;
 
-// One game's stat rows, the two teams, and (for the newest season) the date and time from the schedule sheet.
+// One game's stat rows, the two teams, the saved YouTube video, and (for the newest season) the date and time from the schedule sheet.
 const load = cache(async (id: string) => {
   if (!/^[\w-]+$/.test(id)) return null;
   const rows = await getStats({ game: id });
   if (!rows.length) return null;
 
-  const [seasons, teams, players] = await Promise.all([getSeasons(), getTeams(), getPlayers()]);
+  const [seasons, teams, players, saved] = await Promise.all([getSeasons(), getTeams(), getPlayers(), getGameVideos()]);
   const season = seasons.find((s) => same(s.id, rows[0].season));
   const byTeam = groupBy(rows, (r) => String(r.team));
+  const videoId = saved.find((g) => String(g.id) === id)?.youtube_video_id.trim() || null;
 
   let when: Game | null = null;
   let awayId: string | undefined;
@@ -50,7 +51,7 @@ const load = cache(async (id: string) => {
     const list = byTeam.get(tid)!;
     return { team: teamById.get(tid), rows: [...list].sort((a, b) => n(b.points) - n(a.points)), total: agg(list), fouls: list.reduce((t, r) => t + n(r.fouls), 0) };
   });
-  return { rows, season, sides, when, hasJerseys: !!awayId, playerById: new Map(players.map((p) => [String(p.id), p])) };
+  return { rows, season, sides, when, videoId, hasJerseys: !!awayId, playerById: new Map(players.map((p) => [String(p.id), p])) };
 });
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -67,7 +68,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function GamePage({ params }: { params: Promise<{ id: string }> }) {
   const g = await load((await params).id);
   if (!g) notFound();
-  const { sides, season, when, hasJerseys, playerById, rows } = g;
+  const { sides, season, when, videoId, hasJerseys, playerById, rows } = g;
 
   const two = sides.length === 2;
   const winner = two && sides[0].total.pts !== sides[1].total.pts ? (sides[0].total.pts > sides[1].total.pts ? 0 : 1) : -1;
@@ -83,18 +84,33 @@ export default async function GamePage({ params }: { params: Promise<{ id: strin
         {winner >= 0 ? ` ${sides[winner].team?.name ?? "Winner"} won.` : two ? " Final score tied." : ""}
       </Meta>
 
-      <div className="mb-8 grid max-w-2xl gap-3">
-        {sides.map((s, i) => (
-          <div key={i} className="flex items-center justify-between gap-4 border-b border-slate-300 pb-2">
-            <span className="flex items-center gap-2.5 text-2xl font-semibold">
-              {hasJerseys && <Dot dark={i === 0} />}
-              <TeamLink team={s.team} />
-            </span>
-            <span className={`font-display text-6xl font-bold leading-none tabular-nums ${winner === i || winner < 0 ? "text-red-700" : "text-slate-500"}`}>
-              {s.total.pts}
-            </span>
-          </div>
-        ))}
+      <div className="mb-8 lg:flex lg:items-center lg:justify-between lg:gap-10">
+        <div className="grid w-full max-w-2xl gap-3">
+          {sides.map((s, i) => (
+            <div key={i} className="flex items-center justify-between gap-4 border-b border-slate-300 pb-2">
+              <span className="flex items-center gap-2.5 text-2xl font-semibold">
+                {hasJerseys && <Dot dark={i === 0} />}
+                <TeamLink team={s.team} />
+              </span>
+              <span className={`font-display text-6xl font-bold leading-none tabular-nums ${winner === i || winner < 0 ? "text-red-700" : "text-slate-500"}`}>
+                {s.total.pts}
+              </span>
+            </div>
+          ))}
+        </div>
+        {videoId && (
+          <a
+            href={`https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-6 inline-flex items-center gap-2.5 rounded-md bg-blue-900 px-5 py-3 text-lg font-semibold text-white no-underline hover:bg-blue-800 lg:mt-0 lg:shrink-0"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 fill-current">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            Watch full game
+          </a>
+        )}
       </div>
 
       {bestPlayer && n(best.points) > 0 && (

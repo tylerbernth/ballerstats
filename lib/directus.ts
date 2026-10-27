@@ -10,6 +10,8 @@ export const COLLECTIONS = {
   players: "xroads_bball_players",
   stats: "xroads_bball_game_stats",
   recaps: "xroads_bball_recaps",
+  games: "xroads_bball_games",
+  announcements: "xroads_bball_announcements",
 } as const;
 
 export class DirectusError extends Error {
@@ -114,6 +116,50 @@ export const getRecap = async (slug: string) =>
       }),
     )
   )[0] ?? null;
+
+// Games that have a YouTube video saved on them (the n8n flow fills this in). The id is the same
+// value as the game field on the stat rows. Optional like recaps: without read access there are simply none.
+export type GameVideo = { id: ID; youtube_video_id: string };
+
+export const getGameVideos = async (): Promise<GameVideo[]> =>
+  (
+    await optional(() =>
+      list<GameVideo>(COLLECTIONS.games, {
+        fields: "id,youtube_video_id",
+        "filter[youtube_video_id][_nempty]": "true",
+      }),
+    )
+  ).filter((g) => g.youtube_video_id?.trim());
+
+// Short-lived home page links (voting, signups). A link shows from starts_at (blank means right away) until
+// ends_at, so it disappears on its own. The dates are checked here, not in the query, so they are always
+// current. Only web addresses and site paths are accepted. At most three, lowest sort first.
+export type Announcement = {
+  id: ID;
+  label: string;
+  url: string;
+  note?: string | null;
+  starts_at?: string | null;
+  ends_at: string;
+  sort?: number | null;
+};
+
+export async function getAnnouncements(): Promise<Announcement[]> {
+  try {
+    const now = Date.now();
+    return (await optional(() => list<Announcement>(COLLECTIONS.announcements, { fields: "id,label,url,note,starts_at,ends_at,sort" })))
+      .filter((a) => {
+        if (!a.label?.trim() || !/^(https?:\/\/|\/(?!\/))/i.test(a.url?.trim() ?? "")) return false;
+        const ends = Date.parse(a.ends_at);
+        const starts = a.starts_at ? Date.parse(a.starts_at) : -Infinity;
+        return !Number.isNaN(ends) && ends >= now && starts <= now;
+      })
+      .sort((a, b) => (a.sort ?? 999) - (b.sort ?? 999) || Date.parse(a.ends_at) - Date.parse(b.ends_at))
+      .slice(0, 3);
+  } catch {
+    return []; // decorative: the home page just leaves it out
+  }
+}
 
 // Fetches a photo (Directus file id or full image URL) as a data URI, for share cards drawn on the server.
 export async function assetDataUri(value: string, size = 400): Promise<string | null> {

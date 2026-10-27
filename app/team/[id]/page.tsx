@@ -9,6 +9,7 @@ import { displayName, nameParts, same } from "@/lib/format";
 import { agg, groupBy } from "@/lib/stats";
 import type { Player } from "@/lib/types";
 import { Crumb, Empty, Face, H2, Meta, Title, photoSrc } from "@/components/ui";
+import TeamGameLog from "@/components/TeamGameLog";
 
 const rate = (made: number, att: number) => (att ? (made / att) * 100 : null);
 
@@ -68,7 +69,7 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
 
   return (
     <>
-      <Crumb href={`/teams/${team.season}`}>{season?.season_name} teams</Crumb>
+      <Crumb href={`/teams/${team.season}`}>{season?.season_name} Teams</Crumb>
       {team.photo ? (
         <div className="relative mb-6 overflow-hidden rounded-md bg-blue-900">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -110,7 +111,7 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
 
       {stats.length > 0 && (
         <>
-          <H2>Team stats by game</H2>
+          <H2>Team Stats By Game</H2>
           {chartOk ? (
             <div className="space-y-4">
               <LineChart
@@ -138,10 +139,12 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
 
       {rows.length > 0 && (
         <>
-          <H2>Player stats</H2>
+          <H2>Player Stats</H2>
           <StatsTable rows={rows} seasonId={String(team.season)} />
         </>
       )}
+
+      <TeamGameLog team={team} />
     </>
   );
 }

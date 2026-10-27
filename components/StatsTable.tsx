@@ -73,7 +73,7 @@ export default function StatsTable({ rows, seasonId }: { rows: StatRow[]; season
               i === 0 ? "rounded-l" : "rounded-r"
             }`}
           >
-            {m === "total" ? "Totals" : "Per game"}
+            {m === "total" ? "Totals" : "Per Game"}
           </button>
         ))}
       </div>

@@ -47,7 +47,7 @@ export default function Footer() {
         </nav>
 
         <div>
-          <h2 className="mb-3 font-display text-xl font-bold tracking-wide text-white">Follow us</h2>
+          <h2 className="mb-3 font-display text-xl font-bold tracking-wide text-white">Follow Us</h2>
           <ul className="space-y-3">
             {instagram && (
               <li>

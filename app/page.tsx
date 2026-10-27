@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getRecaps, getSeasons } from "@/lib/directus";
+import { getAnnouncements, getRecaps, getSeasons } from "@/lib/directus";
+import OpenNow from "@/components/OpenNow";
 import SeasonSnapshot from "@/components/SeasonSnapshot";
 import ThisWeek from "@/components/ThisWeek";
 import { Empty, Meta, Title } from "@/components/ui";
@@ -10,7 +11,7 @@ import { getThisWeek } from "@/lib/thisweek";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [[season], [recap], week] = await Promise.all([getSeasons(), getRecaps(), getThisWeek()]);
+  const [[season], [recap], week, links] = await Promise.all([getSeasons(), getRecaps(), getThisWeek(), getAnnouncements()]);
   if (!season) return <Empty title="No seasons yet">Add a season and it will appear here.</Empty>;
   const snapshot = await getSnapshot(season);
 
@@ -43,6 +44,8 @@ export default async function Home() {
           </p>
         )}
       </div>
+
+      <OpenNow items={links} />
 
       {week && <ThisWeek data={week} />}
       {snapshot && <SeasonSnapshot data={snapshot} />}
