@@ -131,6 +131,20 @@ export const getGameVideos = async (): Promise<GameVideo[]> =>
     )
   ).filter((g) => g.youtube_video_id?.trim());
 
+// Playoff bracket inputs. "seed" is a number on the team (set when the playoffs start) and "playoff_round" is a
+// dropdown on the game. Both are optional: without them the bracket is simply not shown.
+export type Seed = { id: ID; seed: number | null };
+export type PlayoffRound = "first_round" | "semifinal" | "final" | "losers_round_1";
+export type PlayoffGame = { id: ID; playoff_round: PlayoffRound };
+
+export const getSeeds = async (seasonId: ID): Promise<Seed[]> =>
+  (await optional(() => list<Seed>(COLLECTIONS.teams, { fields: "id,seed", "filter[season][_eq]": String(seasonId) }))).filter(
+    (t) => Number(t.seed) > 0,
+  );
+
+export const getPlayoffGames = () =>
+  optional(() => list<PlayoffGame>(COLLECTIONS.games, { fields: "id,playoff_round", "filter[playoff_round][_nempty]": "true" }));
+
 // Short-lived home page links (voting, signups). A link shows from starts_at (blank means right away) until
 // ends_at, so it disappears on its own. The dates are checked here, not in the query, so they are always
 // current. Only web addresses and site paths are accepted. At most three, lowest sort first.

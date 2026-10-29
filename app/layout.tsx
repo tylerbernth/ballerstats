@@ -24,10 +24,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={`${display.variable} ${sans.variable} bg-slate-50 font-sans text-[1.0625rem] leading-relaxed text-slate-900 antialiased`}>
+    <html lang="en" className="bg-blue-900">
+      <body
+        className={`${display.variable} ${sans.variable} flex min-h-dvh flex-col bg-slate-50 font-sans text-[1.0625rem] leading-relaxed text-slate-900 antialiased`}
+      >
         <Header />
-        <main className="mx-auto min-h-[60vh] max-w-6xl px-4 pb-16 pt-10 sm:px-6">{children}</main>
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-10 sm:px-6">{children}</main>
         <Footer />
       </body>
     </html>

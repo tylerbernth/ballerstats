@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { getAnnouncements, getRecaps, getSeasons } from "@/lib/directus";
+import Bracket from "@/components/Bracket";
 import OpenNow from "@/components/OpenNow";
 import SeasonSnapshot from "@/components/SeasonSnapshot";
 import ThisWeek from "@/components/ThisWeek";
 import { Empty, Meta, Title } from "@/components/ui";
+import { getBracket } from "@/lib/bracket";
 import { getSnapshot } from "@/lib/snapshot";
 import { getThisWeek } from "@/lib/thisweek";
 
@@ -13,7 +15,7 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   const [[season], [recap], week, links] = await Promise.all([getSeasons(), getRecaps(), getThisWeek(), getAnnouncements()]);
   if (!season) return <Empty title="No seasons yet">Add a season and it will appear here.</Empty>;
-  const snapshot = await getSnapshot(season);
+  const [snapshot, bracket] = await Promise.all([getSnapshot(season), getBracket(season)]);
 
   return (
     <div className="py-6 sm:py-12">
@@ -48,6 +50,7 @@ export default async function Home() {
       <OpenNow items={links} />
 
       {week && <ThisWeek data={week} />}
+      {bracket && <Bracket data={bracket} />}
       {snapshot && <SeasonSnapshot data={snapshot} />}
     </div>
   );

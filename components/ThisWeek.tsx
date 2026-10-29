@@ -1,17 +1,29 @@
 import Link from "next/link";
 import Countdown from "./Countdown";
 import JerseyKey from "./JerseyKey";
+import LiveLink from "./LiveLink";
 import ScheduleDay from "./ScheduleDay";
 import { Face, PlayerLink } from "./ui";
+import { startsAt } from "@/lib/schedule";
 import type { ThisWeek as Data } from "@/lib/thisweek";
+
+const MINUTE = 60_000;
 
 export default function ThisWeek({ data }: { data: Data }) {
   const { next, last, teamIds } = data;
 
+  // The live link shows from 15 minutes before the first game until 90 minutes after the last start,
+  // the same point where the home page moves on to the next game day.
+  const starts = next ? next.day.games.map(startsAt).filter((t): t is number => t != null) : [];
+  const live = starts.length ? { opensAt: Math.min(...starts) - 15 * MINUTE, endsAt: Math.max(...starts) + 90 * MINUTE } : null;
+
   // Both columns use the same pieces in the same order: heading, a fixed-height summary, then the game list.
   return (
     <section className="mt-14 border-t border-slate-300 pt-8">
-      <h2 className="mb-4 font-display text-4xl font-bold text-blue-900">This Week</h2>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <h2 className="font-display text-4xl font-bold text-blue-900">This Week</h2>
+        {live && <LiveLink {...live} />}
+      </div>
       <JerseyKey className="mb-8" />
       <div className="grid gap-x-10 gap-y-10 lg:grid-cols-2 lg:items-stretch">
         <div className="flex flex-col">
@@ -19,7 +31,7 @@ export default function ThisWeek({ data }: { data: Data }) {
           {next ? (
             <>
               <Countdown target={next.startsAt} />
-              <ScheduleDay day={next.day} teamIds={teamIds} showStats={false} fill compact />
+              <ScheduleDay day={next.day} teamIds={teamIds} showStats={true} fill compact />
             </>
           ) : (
             <p className="text-slate-600">No upcoming games on the schedule.</p>
