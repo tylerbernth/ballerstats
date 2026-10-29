@@ -22,14 +22,20 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#1e3a8a", // blue-900, for older iOS and other browsers
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="bg-blue-900">
       <body
-        className={`${display.variable} ${sans.variable} flex min-h-dvh flex-col bg-slate-50 font-sans text-[1.0625rem] leading-relaxed text-slate-900 antialiased`}
+        className={`${display.variable} ${sans.variable} flex min-h-dvh flex-col bg-blue-900 font-sans text-[1.0625rem] leading-relaxed text-slate-900 antialiased`}
       >
         <Header />
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-10 sm:px-6">{children}</main>
+        <main className="w-full flex-1 bg-slate-50">
+          <div className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6">{children}</div>
+        </main>
         <Footer />
       </body>
     </html>
