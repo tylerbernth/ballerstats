@@ -27,12 +27,12 @@ type Cat = {
 };
 
 const CATS: Cat[] = [
-  { key: "pts", label: "Points", kind: "count", total: "pts", game: (r) => num(r.points) },
-  { key: "reb", label: "Rebounds", kind: "count", total: "reb", game: (r) => num(r.rebounds) },
-  { key: "ast", label: "Assists", kind: "count", total: "ast", game: (r) => num(r.assists) },
-  { key: "stl", label: "Steals", kind: "count", total: "stl", game: (r) => num(r.steals) },
-  { key: "blk", label: "Blocks", kind: "count", total: "blk", game: (r) => num(r.blocks) },
-  { key: "tpm", label: "3-pointers made", kind: "count", total: "tpm", game: (r) => num(r.three_points_made) },
+  { key: "pts", label: "PTS", kind: "count", total: "pts", game: (r) => num(r.points) },
+  { key: "reb", label: "REB", kind: "count", total: "reb", game: (r) => num(r.rebounds) },
+  { key: "ast", label: "AST", kind: "count", total: "ast", game: (r) => num(r.assists) },
+  { key: "stl", label: "STL", kind: "count", total: "stl", game: (r) => num(r.steals) },
+  { key: "blk", label: "BLK", kind: "count", total: "blk", game: (r) => num(r.blocks) },
+  { key: "tpm", label: "3PM", kind: "count", total: "tpm", game: (r) => num(r.three_points_made) },
   { key: "fg", label: "FG%", kind: "pct", made: "fgm", att: "fga", game: (r) => num(r.two_points_made) + num(r.three_points_made), gameLabel: "field goals made" },
   { key: "tp", label: "3P%", kind: "pct", made: "tpm", att: "tpa", game: (r) => num(r.three_points_made), gameLabel: "3-pointers made" },
   { key: "ft", label: "FT%", kind: "pct", made: "ftm", att: "fta", game: (r) => num(r.ft_made), gameLabel: "free throws made" },
